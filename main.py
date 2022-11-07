@@ -2,6 +2,7 @@ import streamlit as st
 import pickle
 import pandas as pd
 from PIL import Image
+import gzip
 
 st.header('HR Analytics: AI Evaluation Of a Possible Job Change :robot_face:')
 
@@ -19,8 +20,8 @@ def get_data():
 
 data=get_data()
 
-filename = 'finalized_model.sav'
-model = pickle.load(open(filename, 'rb'))
+with gzip.open('hohohaha.pklz', 'rb') as ifp:
+    model=pickle.load(ifp)
 
 st.subheader('Please, fill a form about yourself :pencil:')
 
