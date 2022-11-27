@@ -1,14 +1,24 @@
 import streamlit as st
 import pickle
 import pandas as pd
+import numpy as np
 from PIL import Image
 import gzip
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.utils.data import DataLoader
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import PowerTransformer
+from sklearn.feature_selection import SelectKBest
+from sklearn.feature_selection import chi2
 
 st.header('HR Analytics: AI Evaluation Of a Possible Job Change :robot_face:')
 
 st.markdown('![](https://github.com/SovBakoid/HR/raw/main/bender-futurama.gif)')
 
-st.subheader('Model design :chart_with_upwards_trend:')
+st.subheader('Random forest full model design :chart_with_upwards_trend:')
 
 
 with Image.open("model_design.png") as im:
@@ -51,6 +61,58 @@ training_hours=st.slider('Pick how many ours would you like to train', 0, 100)
 
 submit=st.button('Submit')
 
+class NeuralNet9(nn.Module):
+    def __init__(self):
+        super(NeuralNet9, self).__init__()
+        self.lin1 = nn.Linear(in_features=26, out_features=100)
+        self.relu1 = nn.ReLU()
+        self.drop1 = nn.Dropout(p=0.3)
+        self.lin2 = nn.Linear(in_features=100, out_features=100)
+        self.relu2 = nn.ReLU()
+        self.lin3 = nn.Linear(in_features=100, out_features=2)
+
+    def forward(self, x):
+        x = self.lin1(x)
+        x = self.relu1(x)
+        x = self.drop1(x)
+        x = self.lin2(x)
+        x = self.relu2(x)
+        x = self.lin3(x)
+        return x
+
+model9 = NeuralNet9()
+model9.load_state_dict(torch.load('nn_model9'))
+
+
+def feature_work(X, y):
+    num = X.select_dtypes(exclude='object').columns
+
+    cat = X.select_dtypes(include='object').columns
+
+    impute = SimpleImputer(strategy='most_frequent')
+
+    Xc = impute.fit_transform(X[cat])
+
+    encoding = OneHotEncoder()
+
+    Xc = encoding.fit_transform(Xc)
+
+    Xc = Xc.toarray()
+
+    transform = PowerTransformer()
+
+    Xn = transform.fit_transform(X[num])
+
+    fs = SelectKBest(score_func=chi2, k=24)
+
+    fs.fit(Xc, y)
+
+    Xfs = fs.transform(Xc)
+
+    X = np.concatenate([Xn, Xfs], axis=1)
+
+    return X, y
+
 if submit:
     list_of_stuff=[city_development_index, gender, relevent_experience,
      enrolled_university, education_level, major_discipline,
@@ -64,9 +126,23 @@ if submit:
 
     test_x=pd.DataFrame(test_dictt)
 
+    test_dictt['target']=[0]
+    test_dictt['enrollee_id'] = [100000]
+    test_dictt['city'] = ['city_67']
+
+    test_XnY=pd.DataFrame(test_dictt)
+
+    data1 = data.append(test_XnY, ignore_index=True)
+
+    X, y = data1.drop(columns=['enrollee_id', 'city', 'target'], axis=1), data1['target']
+
+    X_res, y_res = feature_work(X, y)
+
+    chance_by_nn=F.softmax(model9(torch.Tensor(X_res[-1])))[1]
+
     res=model.predict(test_x)
 
     if res:
-        st.success('Congratulations. The model does recommend you for enrollment :heartbeat:')
+        st.success(f'Congratulations. The random forest model does recommend you for enrollment and neural network gives you a {chance_by_nn} chance of staying in the company after finishing your training :heartbeat:')
     else:
-        st.warning("Too bad. The model doesn't recommend you for enrollment :broken_heart:")
+        st.warning(f"Too bad. The random forest model doesn't recommend you for enrollment and neural network gives you a {chance_by_nn} chance of staying in the company after finishing your training :broken_heart:")
