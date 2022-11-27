@@ -138,7 +138,7 @@ if submit:
 
     X_res, y_res = feature_work(X, y)
 
-    chance_by_nn=F.softmax(model9(torch.Tensor(X_res[-1])))[1]
+    chance_by_nn=F.softmax(model9(torch.Tensor(X_res[-1])), dim=1)[1]
 
     res=model.predict(test_x)
 
