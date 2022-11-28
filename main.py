@@ -82,6 +82,7 @@ class NeuralNet9(nn.Module):
 
 model9 = NeuralNet9()
 model9.load_state_dict(torch.load('nn_model9'))
+model9.eval()
 
 
 def feature_work(X, y):
@@ -138,7 +139,8 @@ if submit:
 
     X_res, y_res = feature_work(X, y)
 
-    chance_by_nn=F.softmax(model9(torch.Tensor(X_res[-1])))[1]
+    with torch.no_grad():
+        chance_by_nn=F.softmax(model9(torch.Tensor(X_res[-1])))[1]
 
     res=model.predict(test_x)
 
